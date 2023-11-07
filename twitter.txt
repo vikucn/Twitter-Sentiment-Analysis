@@ -1,0 +1,102 @@
+import numpy as np
+import pandas as pd
+from textblob import TextBlob
+import matplotlib.pyplot as plt
+import seaborn as sns
+import re
+import string
+
+df=pd.read_csv('sentiment.csv')
+df.head()
+
+df.info()
+
+def remove_pattern(input_txt, pattern):
+    r = re.findall(pattern, input_txt)
+    for word in r:
+        input_txt = re.sub(word, "", input_txt)
+    return input_txt
+
+df.head()
+
+df['clean_tweet'] = np.vectorize(remove_pattern)(df['tweet'], "@[\w]*")
+df['clean_tweet'] = df['clean_tweet'].str.replace("[^a-zA-Z#]", " ")
+df['clean_tweet'] = df['clean_tweet'].apply(lambda x: " ".join([w for w in x.split() if len(w)>3]))
+df.head(10)
+
+def getTextSubjectivity(txt):
+    return TextBlob(txt).sentiment.subjectivity
+
+def getTextPolarity(txt):
+    return TextBlob(txt).sentiment.polarity
+
+df['Subjectivity']=df['tweet'].apply(getTextSubjectivity)
+df['Polarity']=df['tweet'].apply(getTextPolarity)
+
+df.head(25)
+
+def getTextAnalysis(a):
+    if a<0:
+        return "Negative"
+    elif a==0:
+        return "Neutral"
+    else:
+        return "Positive"
+
+df["Score"]=df['Polarity'].apply(getTextAnalysis)
+
+df.head()
+
+positive=df[df['Score']=="Positive"]
+print(str(positive.shape[0]/(df.shape[0])*100)+"% of positive tweets")
+pos=positive.shape[0]/df.shape[0]*100
+
+negative=df[df['Score']=="Negative"]
+print(str(negative.shape[0]/(df.shape[0])*100)+"% of negative tweets")
+neg=negative.shape[0]/df.shape[0]*100
+
+neutral=df[df['Score']=="Neutral"]
+print(str(neutral.shape[0]/(df.shape[0])*100)+"% of neutral tweets")
+neutral=neutral.shape[0]/df.shape[0]*100
+
+explode=(0,0.1,0)
+labels='Positive','Negative','Neutral'
+sizes=[pos,neg,neutral]
+colors=['green','blue','red']
+
+plt.pie(sizes,explode=explode,colors=colors,autopct='%1.1f%%',startangle=120)
+plt.legend(labels,loc=(-0.05,0.05),shadow=True)
+plt.savefig("Sentiment_analysis.png")
+
+all_words = " ".join([sentence for sentence in df['clean_tweet']])
+
+from wordcloud import WordCloud
+wordcloud = WordCloud(width=800, height=500, random_state=42, max_font_size=100).generate(all_words)
+
+# plot the graph
+plt.figure(figsize=(15,8))
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.axis('off')
+plt.show()
+
+all_words = " ".join([sentence for sentence in df['clean_tweet'][df['label']==0]])
+
+wordcloud = WordCloud(width=800, height=500, random_state=42, max_font_size=100).generate(all_words)
+
+# plot the graph
+plt.figure(figsize=(15,8))
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.axis('off')
+plt.show()
+
+all_words = " ".join([sentence for sentence in df['clean_tweet'][df['label']==1]])
+
+wordcloud = WordCloud(width=800, height=500, random_state=42, max_font_size=100).generate(all_words)
+
+# plot the graph
+plt.figure(figsize=(15,8))
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.axis('off')
+plt.show()
+
+
